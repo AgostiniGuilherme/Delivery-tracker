@@ -1,0 +1,23 @@
+# Dockerfile para o frontend
+FROM node:18
+
+WORKDIR /app
+
+# Copiar arquivos de dependências
+COPY frontend/package*.json ./
+
+# Configurar npm para evitar problemas
+RUN npm config set registry https://registry.npmjs.org/
+RUN npm config set strict-ssl false
+
+# Instalar todas as dependências
+RUN npm install --legacy-peer-deps
+
+# Copiar código fonte
+COPY frontend .
+
+# Expor porta
+EXPOSE 3000
+
+# Comando para rodar
+CMD ["npm", "run", "dev"] 

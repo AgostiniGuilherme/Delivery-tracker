@@ -1,0 +1,35 @@
+{
+  "name": "delivery-track-backend",
+  "version": "1.0.0",
+  "description": "Backend para sistema de rastreamento de entregas",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx src/prisma/seed.ts",
+    "kafka:start": "docker run -d --name kafka-test -p 9092:9092 apache/kafka:2.8.1",
+    "kafka:stop": "docker stop kafka-test && docker rm kafka-test"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@fastify/jwt": "^6.7.1",
+    "@fastify/websocket": "^10.0.1",
+    "@prisma/client": "^6.8.2",
+    "bcryptjs": "^2.4.3",
+    "fastify": "^4.24.3",
+    "kafkajs": "^2.2.4",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.10.4",
+    "prisma": "^6.8.2",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.3"
+  }
+}

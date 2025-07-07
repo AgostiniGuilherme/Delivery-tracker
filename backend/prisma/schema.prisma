@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("CUSTOMER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  deliveries        Delivery[] @relation("CustomerDeliveries")
+  courierDeliveries Delivery[] @relation("CourierDeliveries")
+
+  @@map("users")
+}
+
+model Delivery {
+  id                 String    @id @default(cuid())
+  productName        String
+  productDescription String?
+  address            String
+  destinationLat     Float
+  destinationLng     Float
+  status             String    @default("PENDING")
+  estimatedDelivery  DateTime
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deliveredAt        DateTime?
+
+  // Relacionamentos
+  customerId String
+  customer   User   @relation("CustomerDeliveries", fields: [customerId], references: [id])
+
+  courierId String?
+  courier   User?   @relation("CourierDeliveries", fields: [courierId], references: [id])
+
+  locations Location[]
+
+  @@map("deliveries")
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  latitude  Float
+  longitude Float
+  timestamp DateTime @default(now())
+
+  // Relacionamentos
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@map("locations")
+}
+
+// enum UserRole {
+//   CUSTOMER
+//   COURIER
+//   ADMIN
+// }
+
+// enum DeliveryStatus {
+//   PENDING
+//   ASSIGNED
+//   IN_TRANSIT
+//   DELIVERED
+//   CANCELLED
+// }
