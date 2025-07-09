@@ -1,40 +1,10 @@
+# projeto/infra/docker-compose.yml
+
 services:
-
-  backend:
-    build:
-      context: ../
-      dockerfile: infra/Dockerfile.backend
-    ports:
-      - "3001:3001"
-    environment:
-      - DATABASE_URL=file:/app/backend/prisma/dev.db
-      - ENABLE_KAFKA=true
-      - KAFKA_BROKERS=kafka:29092
-    depends_on:
-      - kafka
-    volumes:
-      - ../backend:/app/backend
-
-  frontend:
-    build:
-      context: ../
-      dockerfile: infra/Dockerfile.frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
-    depends_on:
-      - backend
-    volumes:
-      - ../frontend:/app/frontend
-      - /app/frontend/node_modules
-      - /app/frontend/.next
-
   zookeeper:
     image: zookeeper:3.4.9
     ports:
       - "2181:2181"
-
   kafka:
     image: wurstmeister/kafka:2.12-2.2.1
     ports:
@@ -49,7 +19,6 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       - zookeeper
-
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     ports:
@@ -59,4 +28,4 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     depends_on:
-      - kafka
+      - kafka 

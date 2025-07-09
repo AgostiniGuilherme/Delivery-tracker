@@ -11,12 +11,23 @@ async function main() {
   const courierPassword = await bcrypt.hash('123456', 10)
   const adminPassword = await bcrypt.hash('123456', 10)
 
-  const customer = await prisma.user.upsert({
-    where: { email: 'cliente@exemplo.com' },
+  const customer1 = await prisma.user.upsert({
+    where: { email: 'cliente1@exemplo.com' },
     update: {},
     create: {
-      email: 'cliente@exemplo.com',
-      name: 'Cliente Exemplo',
+      email: 'cliente1@exemplo.com',
+      name: 'Maria Eduarda',
+      password: customerPassword,
+      role: 'CUSTOMER'
+    }
+  })
+
+  const customer = await prisma.user.upsert({
+    where: { email: 'cliente2@exemplo.com' },
+    update: {},
+    create: {
+      email: 'cliente2@exemplo.com',
+      name: 'Patrícia Silva',
       password: customerPassword,
       role: 'CUSTOMER'
     }
@@ -38,12 +49,23 @@ async function main() {
     update: {},
     create: {
       email: 'entregador2@exemplo.com',
-      name: 'Maria Santos',
+      name: 'Paulo Almeida',
       password: courierPassword,
       role: 'COURIER'
     }
   })
 
+    const courier3 = await prisma.user.upsert({
+    where: { email: 'entregador2@exemplo.com' },
+    update: {},
+    create: {
+      email: 'entregador3@exemplo.com',
+      name: 'Renato Chagas',
+      password: courierPassword,
+      role: 'COURIER'
+    }
+  })
+  
   const admin = await prisma.user.upsert({
     where: { email: 'admin@exemplo.com' },
     update: {},

@@ -1,6 +1,6 @@
 import type { Delivery, Location } from "./types"
 
-// URL base da API (em um ambiente real, isso viria de variáveis de ambiente)
+// URL base da API (em um ambiente real seria variáveis de ambiente)
 const API_BASE_URL = "http://localhost:3001/api"
 
 function getAuthHeaders(): Record<string, string> {
