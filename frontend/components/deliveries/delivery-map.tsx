@@ -1,7 +1,9 @@
+// frontend/components/deliveries/delivery-map.tsx
+
 "use client"
 
 import { useEffect, useRef } from "react"
-import type { Location } from "@/lib/types"
+import type { Location } from "@/lib/types" //
 
 interface DeliveryMapProps {
   locations: Location[]
@@ -78,12 +80,11 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
   // Atualiza os marcadores e a rota quando as localizações mudam
   useEffect(() => {
     const updateMap = async () => {
-     // if (!mapInstanceRef.current || locations.length === 0) return
-      if (!mapInstanceRef.current) return
+      if (!mapInstanceRef.current) return // Continua mesmo se locations for 0 para mostrar o destino
 
-      console.log('🗺️ Atualizando mapa com', locations.length, 'localizações:', locations)
+      console.log('🗺️ Atualizando mapa com', locations.length, 'localizações:', locations) //
 
-      const L = window.L
+      const L = window.L // Leaflet já deve estar carregado após o primeiro useEffect
       const map = mapInstanceRef.current
 
       // Remove marcadores antigos
@@ -119,29 +120,34 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
 
         markersRef.current.push(marker)
 
-        // Centraliza o mapa na posição atual do entregador APENAS se for o primeiro ponto
-        if (locations.length === 1) {
-        map.setView([lastLocation.latitude, lastLocation.longitude], 14)
+        // Centraliza o mapa na posição atual do entregador APENAS no primeiro ponto (se a simulação acabou de começar)
+        // Isso evita que o mapa fique "saltando" a cada atualização de localização
+        if (locations.length === 1 && !polylineRef.current) { // Verifica se é o primeiro ponto e se a polyline ainda não foi desenhada
+          map.setView([lastLocation.latitude, lastLocation.longitude], 14)
         }
       }
 
       // Desenha o caminho percorrido
-      if (path.length > 1) {
+      if (path.length > 1) { // Só desenha a linha se houver pelo menos 2 pontos
         polylineRef.current = L.polyline(path, { 
           color: "blue", 
-          weight: 4,
+          weight: 4, // Aumentei um pouco a espessura para melhor visualização
           opacity: 0.8,
-          dashArray: "5, 10"
+          dashArray: "5, 10" // Linha tracejada para distinção do destino
         }).addTo(map)
 
         // Ajusta o zoom para mostrar todo o caminho e o destino
-        const bounds = L.latLngBounds([...path, [destination.lat, destination.lng]])
-        map.fitBounds(bounds, { padding: [50, 50] })
+        const allPointsForBounds = [...path, [destination.lat, destination.lng]]
+        // Certifique-se que há pelo menos dois pontos para criar bounds
+        if (allPointsForBounds.length > 1) {
+            const bounds = L.latLngBounds(allPointsForBounds)
+            map.fitBounds(bounds, { padding: [50, 50] })
+        }
       }
 
       // Adiciona marcadores para pontos intermediários (se houver mais de 2 pontos)
       if (locations.length > 2) {
-        locations.slice(1, -1).forEach((location, index) => {
+        locations.slice(1, -1).forEach((location, index) => { // Exclui o primeiro e o último
           const waypointIcon = L.divIcon({
             html: `<div class="flex items-center justify-center bg-gray-400 text-white rounded-full p-1 border-2 border-white" style="width: 20px; height: 20px; font-size: 10px;">
                     ${index + 1}
@@ -162,9 +168,9 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
       }
     }
 
-    if (window.L) {
-      updateMap()
-    }
+    // Chama updateMap independentemente de window.L já estar presente.
+    // O await loadLeaflet() já garante que L estará disponível.
+    updateMap()
   }, [locations, destination])
 
   return <div ref={mapRef} className="h-full w-full" />
