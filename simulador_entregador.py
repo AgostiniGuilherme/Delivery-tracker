@@ -29,7 +29,7 @@ def calcular_ponto_intermediario(lat1, lng1, lat2, lng2, progresso):
     lng = lng1 + (lng2 - lng1) * progresso
     return lat, lng
 
-def gerar_trajeto_completo(ponto_partida, destino, num_pontos=18):
+def gerar_trajeto_completo(ponto_partida, destino, num_pontos=12):
     """Gera um trajeto realista com variações de rota"""
     trajeto = []
     
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         
         if destino:
             ponto_partida = PONTOS_PARTIDA[i % len(PONTOS_PARTIDA)]
-            trajeto = gerar_trajeto_completo(ponto_partida, destino, num_pontos=18)
+            trajeto = gerar_trajeto_completo(ponto_partida, destino, num_pontos=12)
             
             print(f"🛣️ Trajeto {i+1}: {ponto_partida} → {destino}")
             

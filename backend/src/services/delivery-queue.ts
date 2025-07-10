@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { kafkaService, TOPICS } from './kafka'
 import { ZodError } from 'zod'
+import { broadcastToDeliveryClients } from '../routes/locations'
 
 const prisma = new PrismaClient()
 
@@ -142,11 +143,17 @@ export class DeliveryQueueService {
 
         // Se chegou próximo ao destino (menos de 100 metros)
         if (distance < 0.1 && delivery.status === 'IN_TRANSIT') {
-          await prisma.delivery.update({
+          // Atualizar status para DELIVERED
+          const updatedDelivery = await prisma.delivery.update({
             where: { id: data.deliveryId },
             data: {
               status: 'DELIVERED',
               deliveredAt: new Date()
+            },
+            include: {
+              courier: {
+                select: { id: true, name: true, email: true }
+              }
             }
           })
 
@@ -160,6 +167,18 @@ export class DeliveryQueueService {
           await kafkaService.publish(TOPICS.COURIER_AVAILABLE, {
             courierId: delivery.courierId,
             courierName: data.courierName || 'Entregador'
+          })
+
+          // Enviar notificação WebSocket para atualizar o frontend
+          broadcastToDeliveryClients(data.deliveryId, {
+            type: 'delivery_status_update',
+            delivery: {
+              id: updatedDelivery.id,
+              status: updatedDelivery.status,
+              statusText: 'Entregue',
+              deliveredAt: updatedDelivery.deliveredAt?.toISOString(),
+              courierName: updatedDelivery.courier?.name || 'Entregador'
+            }
           })
 
           console.log(`🎉 Entrega ${data.deliveryId} foi concluída!`)

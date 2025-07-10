@@ -17,6 +17,22 @@ type AuthUser = {
 // Mapa de conexões WebSocket: deliveryId -> Set de conexões
 const deliveryWebSocketClients: Record<string, Set<any>> = {}
 
+// Função para enviar notificações WebSocket
+export const broadcastToDeliveryClients = (deliveryId: string, message: any) => {
+  const wsClients = deliveryWebSocketClients[deliveryId]
+  if (wsClients && wsClients.size > 0) {
+    const payload = JSON.stringify(message)
+    wsClients.forEach((client) => {
+      try {
+        client.send(payload)
+      } catch (e) {
+        // Se falhar, remove do set
+        wsClients.delete(client)
+      }
+    })
+  }
+}
+
 const locationRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/locations - Enviar posição do entregador
   fastify.post('/', {
@@ -81,24 +97,14 @@ const locationRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Broadcast via WebSocket para todos os clientes conectados ao deliveryId
-      const wsClients = deliveryWebSocketClients[deliveryId]
-      if (wsClients && wsClients.size > 0) {
-        const payload = JSON.stringify({
+      const payload = {
           id: location.id,
           deliveryId: location.deliveryId,
           latitude: location.latitude,
           longitude: location.longitude,
           timestamp: location.timestamp.toISOString()
-        })
-        wsClients.forEach((client) => {
-          try {
-            client.send(payload)
-          } catch (e) {
-            // Se falhar, remove do set
-            wsClients.delete(client)
-          }
-        })
       }
+      broadcastToDeliveryClients(deliveryId, payload)
 
       return reply.status(201).send({
         id: location.id,

@@ -19,6 +19,8 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const polylineRef = useRef<any>(null)
+  const courierMarkerRef = useRef<any>(null)
+  const isInitializedRef = useRef(false)
 
   useEffect(() => {
     // Carrega o script do Leaflet dinamicamente
@@ -50,8 +52,8 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
       // Se o mapa já foi inicializado, não inicializa novamente
       if (mapInstanceRef.current) return
 
-      // Inicializa o mapa
-      const map = L.map(mapRef.current).setView([destination.lat, destination.lng], 13)
+      // Inicializa o mapa com zoom mais próximo
+      const map = L.map(mapRef.current).setView([destination.lat, destination.lng], 15)
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -59,7 +61,7 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
 
       // Adiciona marcador do destino
       const destinationIcon = L.divIcon({
-        html: `<div class="flex items-center justify-center bg-primary text-white rounded-full p-1 border-2 border-white" style="width: 32px; height: 32px;">
+        html: `<div class="flex items-center justify-center bg-red-500 text-white rounded-full p-1 border-2 border-white shadow-lg" style="width: 32px; height: 32px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               </div>`,
         className: "",
@@ -69,9 +71,10 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
 
       L.marker([destination.lat, destination.lng], { icon: destinationIcon })
         .addTo(map)
-        .bindPopup(`<b>Destino:</b> ${destination.address}`)
+        .bindPopup(`<b>🎯 Destino:</b> ${destination.address}`)
 
       mapInstanceRef.current = map
+      isInitializedRef.current = true
     }
 
     initMap()
@@ -80,14 +83,14 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
   // Atualiza os marcadores e a rota quando as localizações mudam
   useEffect(() => {
     const updateMap = async () => {
-      if (!mapInstanceRef.current) return // Continua mesmo se locations for 0 para mostrar o destino
+      if (!mapInstanceRef.current || !isInitializedRef.current) return
 
-      console.log('🗺️ Atualizando mapa com', locations.length, 'localizações:', locations) //
+      console.log('🗺️ Atualizando mapa com', locations.length, 'localizações:', locations)
 
-      const L = window.L // Leaflet já deve estar carregado após o primeiro useEffect
+      const L = window.L
       const map = mapInstanceRef.current
 
-      // Remove marcadores antigos
+      // Remove marcadores antigos (exceto o do entregador)
       markersRef.current.forEach((marker) => map.removeLayer(marker))
       markersRef.current = []
 
@@ -99,68 +102,62 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
       // Adiciona novos marcadores e constrói o caminho
       const path = locations.map((loc) => [loc.latitude, loc.longitude])
 
-      // Adiciona marcador para a posição atual (último ponto)
+      // Atualiza ou cria marcador do entregador
       if (locations.length > 0) {
         const lastLocation = locations[locations.length - 1]
 
         const courierIcon = L.divIcon({
-          html: `<div class="flex items-center justify-center bg-blue-500 text-white rounded-full p-1 border-2 border-white" style="width: 32px; height: 32px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"></path><path d="m4.93 10.93 1.41 1.41"></path><path d="M2 18h2"></path><path d="M20 18h2"></path><path d="m19.07 10.93-1.41 1.41"></path><path d="M22 22H2"></path><path d="m16 6-4 4-4-4"></path><path d="M16 18a4 4 0 0 0-8 0"></path></svg>
+          html: `<div class="flex items-center justify-center bg-blue-500 text-white rounded-full p-1 border-2 border-white shadow-lg courier-marker" style="width: 36px; height: 36px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"></path><path d="m4.93 10.93 1.41 1.41"></path><path d="M2 18h2"></path><path d="M20 18h2"></path><path d="m19.07 10.93-1.41 1.41"></path><path d="M22 22H2"></path><path d="m16 6-4 4-4-4"></path><path d="M16 18a4 4 0 0 0-8 0"></path></svg>
                 </div>`,
           className: "",
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
         })
 
-        const marker = L.marker([lastLocation.latitude, lastLocation.longitude], { icon: courierIcon })
+        // Remove marcador anterior do entregador se existir
+        if (courierMarkerRef.current) {
+          map.removeLayer(courierMarkerRef.current)
+        }
+
+        // Cria novo marcador do entregador
+        courierMarkerRef.current = L.marker([lastLocation.latitude, lastLocation.longitude], { icon: courierIcon })
           .addTo(map)
           .bindPopup(
-            `<b>Entregador</b><br>Última atualização: ${new Date(lastLocation.timestamp).toLocaleTimeString()}<br>Posição: ${locations.length}ª`,
+            `<b>🚚 Entregador</b><br>Última atualização: ${new Date(lastLocation.timestamp).toLocaleTimeString()}<br>Posição: ${locations.length}ª`,
           )
 
-        markersRef.current.push(marker)
+        // Centraliza o mapa na posição atual do entregador com animação suave
+        map.panTo([lastLocation.latitude, lastLocation.longitude], { animate: true, duration: 1 })
 
-        // Centraliza o mapa na posição atual do entregador APENAS no primeiro ponto (se a simulação acabou de começar)
-        // Isso evita que o mapa fique "saltando" a cada atualização de localização
-        if (locations.length === 1 && !polylineRef.current) { // Verifica se é o primeiro ponto e se a polyline ainda não foi desenhada
-          map.setView([lastLocation.latitude, lastLocation.longitude], 14)
-        }
       }
 
-      // Desenha o caminho percorrido
-      if (path.length > 1) { // Só desenha a linha se houver pelo menos 2 pontos
+      // Desenha o caminho percorrido apenas se houver mais de 1 ponto
+      if (path.length > 1) {
         polylineRef.current = L.polyline(path, { 
-          color: "blue", 
-          weight: 4, // Aumentei um pouco a espessura para melhor visualização
+          color: "#3b82f6", 
+          weight: 4,
           opacity: 0.8,
-          dashArray: "5, 10" // Linha tracejada para distinção do destino
+          dashArray: "8, 12"
         }).addTo(map)
-
-        // Ajusta o zoom para mostrar todo o caminho e o destino
-        const allPointsForBounds = [...path, [destination.lat, destination.lng]]
-        // Certifique-se que há pelo menos dois pontos para criar bounds
-        if (allPointsForBounds.length > 1) {
-            const bounds = L.latLngBounds(allPointsForBounds)
-            map.fitBounds(bounds, { padding: [50, 50] })
-        }
       }
 
-      // Adiciona marcadores para pontos intermediários (se houver mais de 2 pontos)
+      // Adiciona marcadores para pontos intermediários (mostrar todos)
       if (locations.length > 2) {
-        locations.slice(1, -1).forEach((location, index) => { // Exclui o primeiro e o último
+        locations.slice(1, -1).forEach((location, index) => {
           const waypointIcon = L.divIcon({
-            html: `<div class="flex items-center justify-center bg-gray-400 text-white rounded-full p-1 border-2 border-white" style="width: 20px; height: 20px; font-size: 10px;">
+            html: `<div class="flex items-center justify-center bg-gray-400 text-white rounded-full p-1 border-2 border-white shadow-sm" style="width: 16px; height: 16px; font-size: 8px;">
                     ${index + 1}
                   </div>`,
             className: "",
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
           })
 
           const waypointMarker = L.marker([location.latitude, location.longitude], { icon: waypointIcon })
             .addTo(map)
             .bindPopup(
-              `<b>Ponto ${index + 1}</b><br>Hora: ${new Date(location.timestamp).toLocaleTimeString()}`,
+              `<b>📍 Ponto ${index + 1}</b><br>Hora: ${new Date(location.timestamp).toLocaleTimeString()}`,
             )
 
           markersRef.current.push(waypointMarker)
@@ -168,8 +165,6 @@ export function DeliveryMap({ locations, destination }: DeliveryMapProps) {
       }
     }
 
-    // Chama updateMap independentemente de window.L já estar presente.
-    // O await loadLeaflet() já garante que L estará disponível.
     updateMap()
   }, [locations, destination])
 
