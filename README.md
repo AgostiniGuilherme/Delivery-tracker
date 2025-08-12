@@ -3,10 +3,9 @@ Este é um sistema de software funcional rastreador de entregas para delivery, q
 
 ## Tecnologias 💻
 - Front-end: Next.js (React)
-- Back-end: Node.js + Fastify
+- Back-end: Node.js + Fastify + JWT
 - Banco de Dados: PostgreSQL + Prisma
-- Autenticação: Keycloak
-- Mensageria: Kafka ou RabbitMQ
+- Mensageria: Kafka
 - Containerização: Docker + Docker Compose
 
 ## Estrutura Inicial 📜
